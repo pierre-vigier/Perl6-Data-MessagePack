@@ -88,8 +88,17 @@ class Data::MessagePack {
         if $f.Int == $f {
             return self.pack( $f.Int );
         }
-        #1/0 on first bit
-        return Blob.new( 0xca )
+        #only double for now
+        my $sign = $f>0??0!!1;
+        my $abs = $f.abs;
+        my $exp = ($abs.log / 2.log).Int;
+        my $exp_bias = $exp + 1023;
+        my $mantissa = $abs / 2**$exp;
+        my $frac = $mantissa - 1;
+
+        my $binary = $sign +< 63 +| $exp_bias +< 52 +| $frac * 2**52;
+
+        return Blob.new( 0xcb, (56, 48 ... 0).map( $binary +> * +& 0xff) );
     }
 };
 
