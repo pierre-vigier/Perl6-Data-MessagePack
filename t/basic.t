@@ -13,7 +13,6 @@ ok $mp.pack( True ) ~~ Blob.new( 0xc3 ), "Boolean True is packed correctly";
 ok $mp.pack( 1 ) ~~ Blob.new( 0x01 ), "Integer 1 True is packed correctly";
 
 #integers
-
 ok $mp.pack( -16 ) ~~ Blob.new(0xf0), "Negative integer packed correctly";
 ok $mp.pack( -70 ) ~~ Blob.new(0xd0, 0xba), "Negative integer packed correctly";
 ok $mp.pack( -150 ) ~~ Blob.new(0xd1, 0xff, 0x6a), "Negative integer packed correctly";

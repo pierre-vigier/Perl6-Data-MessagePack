@@ -56,6 +56,41 @@ class Data::MessagePack {
             }
         }
     }
+
+    multi method pack( Str:D $s ) {
+        my $length = $s.chars;
+
+        my @header;
+        given $length {
+            when $length < 32 { @header.push( 0xa0 + $length ) }
+            when $length < 2**8 { @header.push( 0xd9, $length ) }
+            when $length < 2**16 { @header.push( 0xda, $length +> 8 +& 0xff, $length +& 0xff ) }
+            when $length < 2**32 { @header.push( 0xdb, $length +> 24 +& 0xff, $length +> 16 +& 0xff, $length +> 8 +& 0xff, $length +& 0xff ) }
+            default { fail 'String is too long' }
+        }
+        return Blob.new(@header, $s.encode.list );
+    }
+
+    multi method pack( Blob:D $b ) {
+        my $length = $b.elems;
+
+        my @header;
+        given $length {
+            when $length < 2**8 { @header.push( 0xc4, $length ) }
+            when $length < 2**16 { @header.push( 0xc5, $length +> 8 +& 0xff, $length +& 0xff ) }
+            when $length < 2**32 { @header.push( 0xc6, $length +> 24 +& 0xff, $length +> 16 +& 0xff, $length +> 8 +& 0xff, $length +& 0xff ) }
+            default { fail 'String is too long' }
+        }
+        return Blob.new(@header, $b.list );
+    }
+
+    multi method pack( Numeric:D $f ) {
+        if $f.Int == $f {
+            return self.pack( $f.Int );
+        }
+        #1/0 on first bit
+        return Blob.new( 0xca )
+    }
 };
 
 # vim: ft=perl6
