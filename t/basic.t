@@ -3,6 +3,8 @@ use v6;
 use Test;
 use Data::MessagePack;
 
+plan 34;
+
 my $data = True;
 
 my $mp = Data::MessagePack.new();
@@ -52,5 +54,5 @@ ok $mp.pack( @a ) ~~ Blob.new(147,1,2,3), "Small Array packed correctly";
 my $l = 1 xx 20;
 ok $mp.pack( $l ) ~~ Blob.new(220,0,20,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), "Medium list packed correctly";
 
-#my $l = 1 xx 2**16;
-#say $mp.pack( $l );
+my %h = key => 'value';
+ok $mp.pack( %h ) ~~ Blob.new(129,163,107,101,121,165,118,97,108,117,101), "Hash packed correctly";
