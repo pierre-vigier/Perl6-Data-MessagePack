@@ -100,6 +100,19 @@ class Data::MessagePack {
 
         return Blob.new( 0xcb, (56, 48 ... 0).map( $binary +> * +& 0xff) );
     }
+
+    multi method pack( List:D $l where $l.elems < 2**4 ) {
+        return Blob.new( 0x90 + $l.elems, $l.map( { self.pack( $_).list } ) );
+    }
+
+    multi method pack( List:D $l where 2**4 <= $l.elems < 2**16 ) {
+        return Blob.new( 0xdc, (8,0).map( $l.elems +> * +& 0xff ), $l.map( { self.pack( $_).list } ) );
+    }
+
+    multi method pack( List:D $l where 2**16 <= $l.elems < 2**32 ) {
+        return Blob.new( 0xdd, (24,16,8,0).map( $l.elems +> * +& 0xff ), $l.map( { self.pack( $_).list } ) );
+    }
+
 };
 
 # vim: ft=perl6

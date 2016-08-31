@@ -45,3 +45,12 @@ ok $mp.pack( 147.625 ) ~~ Blob.new(203,64,98,116,0,0,0,0,0), "Double packed corr
 ok $mp.pack( -147.625 ) ~~ Blob.new(203,192,98,116,0,0,0,0,0), "Negative double packed correcly";
 
 ok $mp.pack( 147.00 ) ~~ $mp.pack( 147 ), "Double with int value packed as int";
+
+my @a = 1, 2, 3;
+ok $mp.pack( @a ) ~~ Blob.new(147,1,2,3), "Small Array packed correctly";
+
+my $l = 1 xx 20;
+ok $mp.pack( $l ) ~~ Blob.new(220,0,20,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), "Medium list packed correctly";
+
+#my $l = 1 xx 2**16;
+#say $mp.pack( $l );
