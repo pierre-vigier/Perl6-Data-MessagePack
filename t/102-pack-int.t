@@ -17,7 +17,7 @@ ok Data::MessagePack::pack( 4294967295) ~~ Blob.new(0xce, 0xff, 0xff, 0xff, 0xff
 ok Data::MessagePack::pack( 4294967296) ~~ Blob.new(0xcf, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00), "Positive integer packed correctly";
 ok Data::MessagePack::pack( 184467440737095) ~~ Blob.new(0xcf, 0x00, 0x00, 0xa7, 0xc5, 0xac, 0x47, 0x1b, 0x47), "Positive integer packed correctly";
 ok Data::MessagePack::pack( 2**64 -1 ) ~~ Blob.new(0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff), "Positive integer packed correctly";
-dies-ok { Data::MessagePack::pack( 2**64 ); }, "Number to big too be converted";
+throws-like { Data::MessagePack::pack( 2**64 ); }, X::Data::MessagePack::Packer;
 
 ok Data::MessagePack::pack( -1 ) ~~ Blob.new(0xff), "Negative integer packed correctly";
 ok Data::MessagePack::pack( -16 ) ~~ Blob.new(0xf0), "Negative integer packed correctly";
@@ -32,4 +32,4 @@ ok Data::MessagePack::pack( -32769 ) ~~ Blob.new(0xd2, 0xff, 0xff, 0x7f, 0xff), 
 ok Data::MessagePack::pack( -2147483648 ) ~~ Blob.new(0xd2, 0x80, 0x00, 0x00, 0x00), "Negative integer packed correctly";
 ok Data::MessagePack::pack( -2147483649 ) ~~ Blob.new(0xd3, 0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xff), "Negative integer packed correctly";
 ok Data::MessagePack::pack( -9223372036854775808 ) ~~ Blob.new(0xd3, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), "Negative integer packed correctly";
-dies-ok { Data::MessagePack::pack( -9223372036854775809 ); }, "Number to big too be converted";
+throws-like { Data::MessagePack::pack( -9223372036854775809 ); }, X::Data::MessagePack::Packer;
