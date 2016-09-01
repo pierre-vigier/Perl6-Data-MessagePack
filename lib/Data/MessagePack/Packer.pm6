@@ -10,8 +10,8 @@ class X::Data::MessagePack::Packer is Exception {
 
 module Data::MessagePack::Packer {
 
-    our sub pack( *@params ) {
-        _pack( |@params );
+    our sub pack( $params ) {
+        _pack( $params );
     }
 
     my multi _pack( Any:U $object ) {
@@ -86,7 +86,7 @@ module Data::MessagePack::Packer {
             when $length < 2**8 { @header.push( 0xd9, $length ) }
             when $length < 2**16 { @header.push( 0xda, $length +> 8 +& 0xff, $length +& 0xff ) }
             when $length < 2**32 { @header.push( 0xdb, $length +> 24 +& 0xff, $length +> 16 +& 0xff, $length +> 8 +& 0xff, $length +& 0xff ) }
-            default { fail 'String is too long' }
+            default { X::Data::MessagePack::Packer.new(reason => "String is too long").throw; }
         }
         return Blob.new(@header, $s.encode.list );
     }
@@ -112,11 +112,44 @@ module Data::MessagePack::Packer {
         my $sign = $f>0??0!!1;
         my $abs = $f.abs;
         my $exp = ($abs.log / 2.log).Int;
-        my $exp_bias = $exp + 1023;
         my $mantissa = $abs / 2**$exp;
         my $frac = $mantissa - 1;
+        #adjuext exponenet
+        $exp += 1023;
 
-        my $binary = $sign +< 63 +| $exp_bias +< 52 +| $frac * 2**52;
+        #rouding done with the 3 followind Number
+        #0xx and 100 for even mantissa, do nothing
+        #100 and odd or 101, 110, 111 add one to mantissa
+        #if overflow, add one to exponent, if exponent overflow + infinity
+        my $frac-shifted = $frac * 2**52;
+
+        my $grs = (($frac-shifted - $frac-shifted.Int) * 2**3).base(2).Int;
+        $grs = ($frac-shifted * 2**3) +& 0x7;
+
+        my $to_add = 0;
+        if $grs +& 0b100  {
+            #GRS -> 1xx
+            if $grs +& 0b011 {
+                #GRS -> 1xx with xx !+= 00
+                $to_add = 1;
+            } else {
+                #GRS -> 1xx with xx == 00, up id mantissa is odd in binary, last bit is one
+                if $frac-shifted +& 0b1 {
+                    $to_add = 1;
+                }
+            }
+        }
+
+        if $to_add {
+            #add and check overflow, hence 52 last bit are 0
+            $frac-shifted += $to_add;
+
+            if $frac-shifted +& 0xFFFFFFFFFFFFF == 0 {
+                $exp += 1;
+            }
+        }
+
+        my $binary = $sign +< 63 +| ( $exp +& 0x7FF ) +< 52 +| ( $frac-shifted +& 0xFFFFFFFFFFFFF );
 
         return Blob.new( 0xcb, (56, 48 ... 0).map( $binary +> * +& 0xff) );
     }
@@ -144,6 +177,5 @@ module Data::MessagePack::Packer {
     my multi _pack( List:D $h where 2**16 <= $h.elems < 2**32 ) {
         return Blob.new( 0xdf, (24,16,8,0).map( $h.elems +> * +& 0xff ), $h.kv.map( { _pack( $_).list } ) );
     }
-
 }
 # vim: ft=perl6
