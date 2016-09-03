@@ -3,9 +3,17 @@ use v6;
 use Test;
 use Data::MessagePack;
 
-plan 32;
+plan 40;
 
 my $value;
+
+$value = Data::MessagePack::unpack( Blob.new(0x00) );
+ok $value == 0, "Positive integer unpacked correctly";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0x7f) );
+ok $value == 127, "Positive integer unpacked correctly";
+ok $value ~~ Int, "Type is correct";
 
 $value = Data::MessagePack::unpack( Blob.new(0xcc, 0xff) );
 ok $value == 255, "Positive integer unpacked correctly";
@@ -37,6 +45,14 @@ ok $value ~~ Int, "Type is correct";
 
 $value = Data::MessagePack::unpack( Blob.new(0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff) );
 ok $value == (2**64 -1), "Positive integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xf0) );
+ok $value == -16, "Negative integer unpacked correctly";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xe0) );
+ok $value == -32, "Negative integer unpacked correctly";
 ok $value ~~ Int, "Type is correct";
 
 $value = Data::MessagePack::unpack( Blob.new(0xd0, 0xdf) );

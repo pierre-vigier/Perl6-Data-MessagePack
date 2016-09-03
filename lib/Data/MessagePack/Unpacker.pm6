@@ -7,6 +7,24 @@ module Data::MessagePack::Unpacker {
         _unpack( Buf.new( $b ), $position );
     }
 
+    sub _unpack-array( Buf $b, Int $position is rw, Int $elems ) {
+        my @array = ();
+        for ^$elems {
+            @array.push(
+                _unpack($b, $position)
+            );
+        }
+        return @array;
+    }
+
+    sub _unpack-map( Buf $b, Int $position is rw, Int $elems ) {
+        my %map = ();
+        for ^$elems {
+            %map{ _unpack($b, $position) } = _unpack($b, $position);
+        }
+        return %map;
+    }
+
     sub _unpack( Buf $b, Int $position is rw ) {
         given $b[$position++] {
             when 0xc0 { Any }
@@ -40,21 +58,25 @@ module Data::MessagePack::Unpacker {
             when 0xd7 { ... }
             when 0xd8 { ... }
             #strings
-            when 0xd9 { }
-            when 0xda { }
-            when 0xdb { }
+            when 0xd9 { _unpack-string($b, $position, _unpack-uint( $b, $position, 1 )) }
+            when 0xda { _unpack-string($b, $position, _unpack-uint( $b, $position, 2 )) }
+            when 0xdb { _unpack-string($b, $position, _unpack-uint( $b, $position, 4 )) }
             #array
-            when 0xdc { }
-            when 0xdd { }
+            when 0xdc { _unpack-array($b, $position, _unpack-uint( $b, $position, 2) ) }
+            when 0xdd { _unpack-array($b, $position, _unpack-uint( $b, $position, 8) ) }
             #map
-            when 0xde { }
-            when 0xdf { }
+            when 0xde { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }
+            when 0xdf { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }
             #positive fixint 0xxxxxxx	0x00 - 0x7f
+            when * +& 0b10000000 == 0 { $_ }
             #fixmap          1000xxxx	0x80 - 0x8f
+            when * +& 0b11110000 == 0b10000000 { _unpack-map($b, $position, $_ +& 0x0f ) }
             #fixarray        1001xxxx	0x90 - 0x9f
+            when * +& 0b11110000 == 0b10010000 { _unpack-array($b, $position, $_ +& 0x0f ) }
             #fixstr          101xxxxx	0xa0 - 0xbf
+            when * +& 0b11100000 == 0b10100000 { _unpack-string($b, $position, $_ +& 0x1f ) }
             #negative fixint 111xxxxx	0xe0 - 0xff
-
+            when * +& 0b11100000 == 0b11100000 { $_ +& 0x1f -^ 0x1f - 1 }
         }
     }
 
@@ -73,6 +95,14 @@ sub _unpack-bin( Buf $b, Int $position is rw, Int $length ) {
     my $blob = Blob.new( $b[$position .. ($position + $length - 1)] );
     $position += $length;
     return $blob;
+}
+
+
+
+sub _unpack-string( Buf $b, Int $position is rw, Int $length ) {
+    my $str = Blob.new( $b[$position .. ($position + $length - 1)] ).decode;
+    $position += $length;
+    return $str;
 }
 
 sub _unpack-float( Buf $b, Int $position is rw ) {

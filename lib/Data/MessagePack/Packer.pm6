@@ -170,11 +170,11 @@ module Data::MessagePack::Packer {
         return Blob.new( 0x80 + $h.elems, $h.kv.map( { _pack( $_).list } ) );
     }
 
-    my multi _pack( List:D $h where 2**4 <= $h.elems < 2**16 ) {
+    my multi _pack( Hash:D $h where 2**4 <= $h.elems < 2**16 ) {
         return Blob.new( 0xde, (8,0).map( $h.elems +> * +& 0xff ), $h.kv.map( { _pack( $_).list } ) );
     }
 
-    my multi _pack( List:D $h where 2**16 <= $h.elems < 2**32 ) {
+    my multi _pack( Hash:D $h where 2**16 <= $h.elems < 2**32 ) {
         return Blob.new( 0xdf, (24,16,8,0).map( $h.elems +> * +& 0xff ), $h.kv.map( { _pack( $_).list } ) );
     }
 }
