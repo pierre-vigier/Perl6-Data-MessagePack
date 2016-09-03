@@ -3,7 +3,7 @@ use v6;
 use Test;
 use Data::MessagePack;
 
-plan 18;
+plan 32;
 
 my $value;
 
@@ -41,6 +41,32 @@ ok $value ~~ Int, "Type is correct";
 
 $value = Data::MessagePack::unpack( Blob.new(0xd0, 0xdf) );
 ok $value == -33, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd0, 0x80) );
+ok $value == -128, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
 
 $value = Data::MessagePack::unpack( Blob.new(0xd1, 0xff, 0x7f) );
 ok $value == -129, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd1, 0x80, 0x00) );
+ok $value == -32768, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd2, 0xff, 0xff, 0x7f, 0xff) );
+ok $value == -32769, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd2, 0x80, 0x00, 0x00, 0x00) );
+ok $value == -2147483648, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd3, 0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xff) );
+ok $value == -2147483649, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";
+
+$value = Data::MessagePack::unpack( Blob.new(0xd3, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00) );
+ok $value == -9223372036854775808, "Negative integer unpacked correclty";
+ok $value ~~ Int, "Type is correct";

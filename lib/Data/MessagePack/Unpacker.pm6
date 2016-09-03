@@ -9,20 +9,20 @@ module Data::MessagePack::Unpacker {
 
     sub _unpack( Buf $b, Int $position is rw ) {
         given $b[$position++] {
-            when 0xc0 { return Any }
-            when 0xc2 { return False }
-            when 0xc3 { return True }
+            when 0xc0 { Any }
+            when 0xc2 { False }
+            when 0xc3 { True }
             #bin
-            when 0xc4 { return _unpack-bin($b, $position, _unpack-uint( $b, $position, 1 )) }
-            when 0xc5 { return _unpack-bin($b, $position, _unpack-uint( $b, $position, 2 )) }
-            when 0xc6 { return _unpack-bin($b, $position, _unpack-uint( $b, $position, 4 )) }
+            when 0xc4 { _unpack-bin($b, $position, _unpack-uint( $b, $position, 1 )) }
+            when 0xc5 { _unpack-bin($b, $position, _unpack-uint( $b, $position, 2 )) }
+            when 0xc6 { _unpack-bin($b, $position, _unpack-uint( $b, $position, 4 )) }
             # extension
             when 0xc7 { ... }
             when 0xc8 { ... }
             when 0xc9 { ... }
             #floats
-            when 0xca { }
-            when 0xcb { }
+            when 0xca { _unpack-float($b, $position) }
+            when 0xcb { _unpack-double($b, $position) }
             #uint
             when 0xcc { _unpack-uint( $b, $position, 1 ) }
             when 0xcd { _unpack-uint( $b, $position, 2 ) }
@@ -75,4 +75,34 @@ sub _unpack-bin( Buf $b, Int $position is rw, Int $length ) {
     return $blob;
 }
 
+sub _unpack-float( Buf $b, Int $position is rw ) {
+    my $raw = 0;
+    for ^4 {
+        $raw +<= 8;
+        $raw += $b[$position++];
+    }
+
+    return 0.0 if $raw == 0;
+    my $s = $raw +& 0x80000000 ?? -1 !! 1;
+    my $exp = ( $raw +> 23 ) +& 0xff;
+    $exp -= 127;
+    my $mantissa = $raw +& 0x7FFFFF;
+    $mantissa = 1 + ( $mantissa / 2**23 );
+    return $s * $mantissa * 2**$exp;
+}
+sub _unpack-double( Buf $b, Int $position is rw ) {
+    my $raw = 0;
+    for ^8 {
+        $raw +<= 8;
+        $raw += $b[$position++];
+    }
+
+    return 0.0 if $raw == 0;
+    my $s = $raw +& 0x8000000000000000 ?? -1 !! 1;
+    my $exp = ( $raw +> 52 ) +& 0x7ff;
+    $exp -= 1023;
+    my $mantissa = $raw +& 0x0FFFFFFFFFFFFF;
+    $mantissa = 1 + ( $mantissa / 2**52 );
+    return $s * $mantissa * 2**$exp;
+}
 # vim: ft=perl6
