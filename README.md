@@ -1,7 +1,11 @@
 # Perl6-Data-MessagePack
 
-NAME Data::MessagePack - Perl 6 implementation of MessagePack
-=============================================================
+[![Build Status](https://travis-ci.org/pierre-vigier/Perl6-Data-MessagePack.svg?branch=master)](https://travis-ci.org/pierre-vigier/Perl6-Data-MessagePack)
+
+NAME
+====
+
+Data::MessagePack - Perl 6 implementation of MessagePack
 
 SYNOPSIS
 ========
