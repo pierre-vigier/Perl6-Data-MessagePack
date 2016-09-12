@@ -8,7 +8,7 @@ class Data::MessagePack::StreamingUnpacker {
 
     submethod BUILD ( :$!source ){
         $!supplier = Supplier.new;
-        $!source.tap( -> $v { self!process_input( $v) }, done => {
+        $!source.tap( -> $v { self.process_input( $v) }, done => {
             $!supplier.done();
         });
     }
@@ -17,7 +17,11 @@ class Data::MessagePack::StreamingUnpacker {
         $!supplier.Supply;
     }
 
-    method !process_input( $byte ) {
+    multi method process_input( Blob $b ) {
+        $b.map: { $.process_input( $_) };
+    }
+
+    multi method process_input( $byte ) {
         $!next = $!next.( $byte );
 
         if $!next !~~ Sub {
