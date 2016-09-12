@@ -27,11 +27,12 @@ class Data::MessagePack::StreamingUnpacker {
         #nothing in queue, start a new decode loop
         given $byte {
             when 0xc0 { $!supplier.emit( Any ); }
-            when 0xc2 { $!supplier.emit( False ) }
-            when 0xc3 { $!supplier.emit( True ) }
-            when 0xd9 {
-                $!next = process-string( length-bytes => 1, supplier => $!supplier );
-            }
+            when 0xc2 { $!supplier.emit( False ); }
+            when 0xc3 { $!supplier.emit( True ); }
+            when 0xd9 { $!next = process-string( length-bytes => 1, supplier => $!supplier ); }
+            #floats
+            when 0xca { $!next = process-float( supplier => $!supplier ); }
+            when 0xcb { $!next = process-double( supplier => $!supplier ); }
             #uint
             when 0xcc { $!next = process-uint( length-bytes => 1, supplier => $!supplier ); }
             when 0xcd { $!next = process-uint( length-bytes => 2, supplier => $!supplier ); }
@@ -63,6 +64,7 @@ class Data::MessagePack::StreamingUnpacker {
             }
         };
     }
+
     sub process-int( :$length-bytes, :$supplier ) {
         my $remaining-bytes = $length-bytes;
         my $value = 0;
@@ -76,6 +78,56 @@ class Data::MessagePack::StreamingUnpacker {
                 return Nil;
             }
         };
+    }
+
+    sub process-float( :$supplier ) {
+        my $remaining-bytes = 4;
+        my $raw = 0;
+
+        return sub ( $byte ) {
+            $raw +<= 8;
+            $raw += $byte;
+            if --$remaining-bytes {
+                return &?BLOCK;
+            } else {
+                if $raw == 0 {
+                    $supplier.emit( 0 );
+                } else {
+                    my $s = $raw +& 0x80000000 ?? -1 !! 1;
+                    my $exp = ( $raw +> 23 ) +& 0xff;
+                    $exp -= 127;
+                    my $mantissa = $raw +& 0x7FFFFF;
+                    $mantissa = 1 + ( $mantissa / 2**23 );
+                    $supplier.emit( $s * $mantissa * 2**$exp );
+                }
+                return Nil;
+            }
+        }
+    }
+
+    sub process-double( :$supplier ) {
+        my $remaining-bytes = 8;
+        my $raw = 0;
+
+        return sub ( $byte ) {
+            $raw +<= 8;
+            $raw += $byte;
+            if --$remaining-bytes {
+                return &?BLOCK;
+            } else {
+                if $raw == 0 {
+                    $supplier.emit( 0 );
+                } else {
+                    my $s = $raw +& 0x8000000000000000 ?? -1 !! 1;
+                    my $exp = ( $raw +> 52 ) +& 0x7ff;
+                    $exp -= 1023;
+                    my $mantissa = $raw +& 0x0FFFFFFFFFFFFF;
+                    $mantissa = 1 + ( $mantissa / 2**52 );
+                    $supplier.emit( $s * $mantissa * 2**$exp );
+                }
+                return Nil;
+            }
+        }
     }
 
     sub process-string( :$length-bytes, :$supplier ) {
