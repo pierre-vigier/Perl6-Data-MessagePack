@@ -27,6 +27,21 @@ Data::MessagePack - Perl 6 implementation of MessagePack
 
     my $unpacked = Data::MessagePack::unpack( $packed );
 
+Or for streaming:
+
+    use Data::MessagePack::StreanmingUnpacker;
+
+    my $supplier = Some Supplier; #Could be from IO::Socket::Async for instance
+
+    my $unpacker = Data::MessagePack::StreanmingUnpacker.new(
+        source => $supplier.Supply
+    );
+
+    $unpacker.tap( -> $value {
+        say "Got new value";
+        say $value.perl;
+    }, done => { say "Source supply is done"; } );
+
 =head1 DESCRIPTION
 
 The present module proposes an implemetation of the MessagePack specification
