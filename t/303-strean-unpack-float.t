@@ -10,8 +10,6 @@ my @to_send = 0xca, 0x42, 0x02, 0x80, 0x00,
 
 my @expected = 32.625, 1.1; # -147.625;
 
-#1.1 0xcb, 0x3f, 0xf1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a 10**-15
-
 my $supplier = Supplier.new;
 
 my $s = Data::MessagePack::StreamingUnpacker.new( source => $supplier.Supply );

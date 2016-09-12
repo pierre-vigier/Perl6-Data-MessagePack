@@ -30,6 +30,8 @@ class Data::MessagePack::StreamingUnpacker {
             when 0xc2 { $!supplier.emit( False ); }
             when 0xc3 { $!supplier.emit( True ); }
             when 0xd9 { $!next = process-string( length-bytes => 1, supplier => $!supplier ); }
+            when 0xda { $!next = process-string( length-bytes => 2, supplier => $!supplier ); }
+            when 0xdb { $!next = process-string( length-bytes => 4, supplier => $!supplier ); }
             #floats
             when 0xca { $!next = process-float( supplier => $!supplier ); }
             when 0xcb { $!next = process-double( supplier => $!supplier ); }
@@ -48,6 +50,8 @@ class Data::MessagePack::StreamingUnpacker {
             when * +& 0b10000000 == 0 { $!supplier.emit($_) }
             #negative fixint 111xxxxx	0xe0 - 0xff
             when * +& 0b11100000 == 0b11100000 { $!supplier.emit($_ +& 0x1f -^ 0x1f - 1) }
+            #fixstr          101xxxxx	0xa0 - 0xbf
+            when * +& 0b11100000 == 0b10100000 {  $!next = process-string( supplier => $!supplier, length => $_ +& 0x1f ); }
         }
     }
 
@@ -130,18 +134,18 @@ class Data::MessagePack::StreamingUnpacker {
         }
     }
 
-    sub process-string( :$length-bytes, :$supplier ) {
+    sub process-string( :$length-bytes = 0, :$supplier, :$length = 0 ) {
         my $remaining-bytes = $length-bytes;
-        my $length = 0;
+        my $str-length = $length;
         my $buf = Buf.new;
         return sub ($byte) {
             if $remaining-bytes {
-                $length +<= 8; $length += $byte;
+                $str-length +<= 8; $str-length += $byte;
                 $remaining-bytes--;
                 return &?BLOCK;
             } else {
                 $buf.push( $byte );
-                if --$length {
+                if --$str-length {
                     return &?BLOCK;
                 } else {
                     $supplier.emit( $buf.decode );
@@ -150,22 +154,4 @@ class Data::MessagePack::StreamingUnpacker {
             }
         };
     }
-    # method !process-string($inv: $byte, :$length, :$length-bytes, :$buf ) {
-    #     say "Invocant ps $inv , $byte, $length, $length-bytes";
-    #     if $length-bytes {
-    #         my $l = $length;
-    #         $l +<= 8; $l += $byte;
-    #         say "length $l";
-    #         return -> $b { self!process-string( $b, length => $l, length-bytes => $length-bytes - 1 ); }
-    #     }
-    #     #processing of the string
-    #     if $length == 0 {
-    #         $!supplier.emit( $buf.decode );
-    #         return Callable;
-    #     }
-    #
-    #     my $bu = $buf.defined??$buf!!Buf.new();
-    #     $bu.push( $byte );
-    #     return -> $b { self!process-string( $b, length => $length - 1, :length-bytes(0), buf => $bu ) }
-    # }
 }
