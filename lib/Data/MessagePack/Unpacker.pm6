@@ -63,7 +63,7 @@ module Data::MessagePack::Unpacker {
             when 0xdb { _unpack-string($b, $position, _unpack-uint( $b, $position, 4 )) }
             #array
             when 0xdc { _unpack-array($b, $position, _unpack-uint( $b, $position, 2) ) }
-            when 0xdd { _unpack-array($b, $position, _unpack-uint( $b, $position, 8) ) }
+            when 0xdd { _unpack-array($b, $position, _unpack-uint( $b, $position, 4) ) }
             #map
             when 0xde { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }
             when 0xdf { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }

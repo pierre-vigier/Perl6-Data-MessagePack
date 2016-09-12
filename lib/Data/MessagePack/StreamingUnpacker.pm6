@@ -21,7 +21,6 @@ class Data::MessagePack::StreamingUnpacker {
         $!next = $!next.( $byte );
 
         if $!next !~~ Sub {
-            say "got value";
             $!supplier.emit( $!next );
             $!next = &get-next;
         }
@@ -34,26 +33,29 @@ class Data::MessagePack::StreamingUnpacker {
             when 0xc2 { False }
             when 0xc3 { True }
             #bin
-            when 0xc4 { process-bin( length-bytes => 1 ); }
-            when 0xc5 { process-bin( length-bytes => 2 ); }
-            when 0xc6 { process-bin( length-bytes => 4 ); }
+            when 0xc4 { process-bin( length-bytes => 1 ) }
+            when 0xc5 { process-bin( length-bytes => 2 ) }
+            when 0xc6 { process-bin( length-bytes => 4 ) }
             #string
-            when 0xd9 { process-string( length-bytes => 1 ); }
-            when 0xda { process-string( length-bytes => 2 ); }
-            when 0xdb { process-string( length-bytes => 4 ); }
+            when 0xd9 { process-string( length-bytes => 1 ) }
+            when 0xda { process-string( length-bytes => 2 ) }
+            when 0xdb { process-string( length-bytes => 4 ) }
+            #array
+            when 0xdc { process-array( length-bytes => 2 ) }
+            when 0xdd { process-array( length-bytes => 4 ) }
             #floats
-            when 0xca { process-float(); }
-            when 0xcb { process-double(); }
+            when 0xca { process-float() }
+            when 0xcb { process-double() }
             #uint
-            when 0xcc { process-uint( length-bytes => 1 ); }
-            when 0xcd { process-uint( length-bytes => 2 ); }
-            when 0xce { process-uint( length-bytes => 4 ); }
-            when 0xcf { process-uint( length-bytes => 8 ); }
+            when 0xcc { process-uint( length-bytes => 1 ) }
+            when 0xcd { process-uint( length-bytes => 2 ) }
+            when 0xce { process-uint( length-bytes => 4 ) }
+            when 0xcf { process-uint( length-bytes => 8 ) }
             #int
-            when 0xd0 { process-int( length-bytes => 1 ); }
-            when 0xd1 { process-int( length-bytes => 2 ); }
-            when 0xd2 { process-int( length-bytes => 4 ); }
-            when 0xd3 { process-int( length-bytes => 8 ); }
+            when 0xd0 { process-int( length-bytes => 1 ) }
+            when 0xd1 { process-int( length-bytes => 2 ) }
+            when 0xd2 { process-int( length-bytes => 4 ) }
+            when 0xd3 { process-int( length-bytes => 8 ) }
 
             #fixarray        1001xxxx	0x90 - 0x9f
             when * +& 0b11110000 == 0b10010000 { process-array( length => $byte +& 0x0f  ) }
@@ -62,18 +64,34 @@ class Data::MessagePack::StreamingUnpacker {
             #negative fixint 111xxxxx	0xe0 - 0xff
             when * +& 0b11100000 == 0b11100000 { $byte +& 0x1f -^ 0x1f - 1 }
             #fixstr          101xxxxx	0xa0 - 0xbf
-            when * +& 0b11100000 == 0b10100000 { process-string( length => $byte +& 0x1f ); }
+            when * +& 0b11100000 == 0b10100000 { process-string( length => $byte +& 0x1f ) }
         }
     }
 
     sub process-array( :$length-bytes = 0, :$length = 0 ) {
-        # my @array = ();
-        # for ^$elems {
-        #     @array.push(
-        #         _unpack($b, $position)
-        #     );
-        # }
-        # return @array;
+        if $length-bytes == 0 and $length == 0 {
+            return ();
+        }
+        my @array = ();
+        my $remaining-bytes = $length-bytes;
+        my $elems = $length;
+        my $array-next = &get-next;
+
+        return sub ($byte) {
+            if $remaining-bytes {
+                $elems +<= 8; $elems += $byte;
+                $remaining-bytes--;
+                return &?BLOCK;
+            } else {
+                $array-next = $array-next.($byte);
+                if $array-next !~~ Sub {
+                    @array.push: $array-next;
+                    return @array unless --$elems;
+                    $array-next = &get-next;
+                }
+                return &?BLOCK;
+            }
+        }
     }
 
     sub process-uint( :$length-bytes ) {
@@ -152,6 +170,9 @@ class Data::MessagePack::StreamingUnpacker {
     }
 
     sub process-string( :$length-bytes = 0, :$length = 0 ) {
+        if $length-bytes == 0 and $length == 0 {
+            return "";
+        }
         my $remaining-bytes = $length-bytes;
         my $str-length = $length;
         my $buf = Buf.new;
