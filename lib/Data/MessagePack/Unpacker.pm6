@@ -66,7 +66,7 @@ module Data::MessagePack::Unpacker {
             when 0xdd { _unpack-array($b, $position, _unpack-uint( $b, $position, 4) ) }
             #map
             when 0xde { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }
-            when 0xdf { _unpack-map($b, $position, _unpack-uint( $b, $position, 2) ) }
+            when 0xdf { _unpack-map($b, $position, _unpack-uint( $b, $position, 4) ) }
             #positive fixint 0xxxxxxx	0x00 - 0x7f
             when * +& 0b10000000 == 0 { $_ }
             #fixmap          1000xxxx	0x80 - 0x8f
