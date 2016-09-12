@@ -8,7 +8,9 @@ class Data::MessagePack::StreamingUnpacker {
 
     submethod BUILD ( :$!source ){
         $!supplier = Supplier.new;
-        $!source.tap( -> $v { self!process_input( $v) });
+        $!source.tap( -> $v { self!process_input( $v) }, done => {
+            $!supplier.done();
+        });
     }
 
     method Supply returns Supply {
@@ -36,13 +38,15 @@ class Data::MessagePack::StreamingUnpacker {
             when 0xce { $!next = process-uint( length-bytes => 4, supplier => $!supplier ); }
             when 0xcf { $!next = process-uint( length-bytes => 8, supplier => $!supplier ); }
             #int
-            # when 0xd0 { _unpack-uint( $b, $position, 1 ) -^ 0xff - 1 }
-            # when 0xd1 { _unpack-uint( $b, $position, 2 ) -^ 0xffff - 1 }
-            # when 0xd2 { _unpack-uint( $b, $position, 4 ) -^ 0xffffffff - 1 }
-            # when 0xd3 { _unpack-uint( $b, $position, 8 ) -^ 0xffffffffffffffff - 1 }
+            when 0xd0 { $!next = process-int( length-bytes => 1, supplier => $!supplier ); }
+            when 0xd1 { $!next = process-int( length-bytes => 2, supplier => $!supplier ); }
+            when 0xd2 { $!next = process-int( length-bytes => 4, supplier => $!supplier ); }
+            when 0xd3 { $!next = process-int( length-bytes => 8, supplier => $!supplier ); }
 
             #positive fixint 0xxxxxxx	0x00 - 0x7f
             when * +& 0b10000000 == 0 { $!supplier.emit($_) }
+            #negative fixint 111xxxxx	0xe0 - 0xff
+            when * +& 0b11100000 == 0b11100000 { $!supplier.emit($_ +& 0x1f -^ 0x1f - 1) }
         }
     }
 
@@ -50,12 +54,25 @@ class Data::MessagePack::StreamingUnpacker {
         my $remaining-bytes = $length-bytes;
         my $value = 0;
         return sub ($byte) {
-            if $remaining-bytes {
-                $value +<= 8; $value += $byte;
-                $remaining-bytes--;
+            $value +<= 8; $value += $byte;
+            if --$remaining-bytes {
                 return &?BLOCK;
             } else {
                 $supplier.emit( $value );
+                return Nil;
+            }
+        };
+    }
+    sub process-int( :$length-bytes, :$supplier ) {
+        my $remaining-bytes = $length-bytes;
+        my $value = 0;
+        my $mask = :16("FF" x $length-bytes);
+        return sub ($byte) {
+            $value +<= 8; $value += $byte;
+            if --$remaining-bytes {
+                return &?BLOCK;
+            } else {
+                $supplier.emit( $value -^ $mask - 1 );
                 return Nil;
             }
         };
