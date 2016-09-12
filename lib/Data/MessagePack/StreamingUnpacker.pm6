@@ -29,6 +29,11 @@ class Data::MessagePack::StreamingUnpacker {
             when 0xc0 { $!supplier.emit( Any ); }
             when 0xc2 { $!supplier.emit( False ); }
             when 0xc3 { $!supplier.emit( True ); }
+            #bin
+            when 0xc4 { $!next = process-bin( length-bytes => 1, supplier => $!supplier ); }
+            when 0xc5 { $!next = process-bin( length-bytes => 2, supplier => $!supplier ); }
+            when 0xc6 { $!next = process-bin( length-bytes => 4, supplier => $!supplier ); }
+            #string
             when 0xd9 { $!next = process-string( length-bytes => 1, supplier => $!supplier ); }
             when 0xda { $!next = process-string( length-bytes => 2, supplier => $!supplier ); }
             when 0xdb { $!next = process-string( length-bytes => 4, supplier => $!supplier ); }
@@ -149,6 +154,27 @@ class Data::MessagePack::StreamingUnpacker {
                     return &?BLOCK;
                 } else {
                     $supplier.emit( $buf.decode );
+                    return Nil;
+                }
+            }
+        };
+    }
+
+    sub process-bin( :$length-bytes, :$supplier ) {
+        my $remaining-bytes = $length-bytes;
+        my $bin-length = 0;
+        my @bytes = ();
+        return sub ($byte) {
+            if $remaining-bytes {
+                $bin-length +<= 8; $bin-length += $byte;
+                $remaining-bytes--;
+                return &?BLOCK;
+            } else {
+                @bytes.push( $byte );
+                if --$bin-length {
+                    return &?BLOCK;
+                } else {
+                    $supplier.emit( Blob.new(@bytes) );
                     return Nil;
                 }
             }
