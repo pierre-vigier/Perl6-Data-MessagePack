@@ -1,0 +1,7 @@
+all: resources/lib/libdatamsgpack%SO% %FAKESO%
+
+resources/lib/libdatamsgpack%SO%: libdatamsgpack%O%
+	%LD% %LDSHARED% %LDFLAGS% %LDOUT%resources/lib/libdatamsgpack%SO% -lmsgpackc libdatamsgpack%O%
+
+libdatamsgpack%O%: libdatamsgpack.c
+	%CC% -c %CCSHARED% %CCFLAGS% %CCOUT%libdatamsgpack%O% -lmsgpackc libdatamsgpack.c

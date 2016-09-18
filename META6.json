@@ -8,7 +8,12 @@
     "provides" : {
         "Data::MessagePack"    : "lib/Data/MessagePack.pm6",
         "Data::MessagePack::Packer"    : "lib/Data/MessagePack/Packer.pm6",
-        "Data::MessagePack::Unpacker"    : "lib/Data/MessagePack/Unpacker.pm6",
+        "Data::MessagePack::Unpacker"    : "lib/Data/MessagePack/Unpacker.pm6"
     },
+    "resources" : [
+        "lib/libdatamsgpack.so",
+        "lib/libdatamsgpack.dll",
+        "lib/libdatamsgpack.dylib"
+    ],
     "source-url"    : "git@github.com:pierre-vigier/Perl6-Data-MessagePack.git"
 }
