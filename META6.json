@@ -2,8 +2,8 @@
     "perl"          : "6.c",
     "name"          : "Data::MessagePack",
     "license"       : "Artistic-2.0",
-    "version"       : "0.1.0",
-    "authors"       : [ "github:pierre-vigier" ],
+    "version"       : "0.1.1",
+    "authors"       : [ "github:pierre-vigier","github:timo" ],
     "description"   : "Data::MessagePack",
     "depends"       : [],
     "provides" : {
