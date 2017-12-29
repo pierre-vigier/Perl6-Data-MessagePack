@@ -159,7 +159,7 @@ sub _unpack-uint( Blob $b, Int $position is rw, Int $byte-count ) {
 }
 
 sub _unpack-bin( Blob $b, Int $position is rw, Int $length ) {
-    my $blob = Blob.new( $b[$position .. ($position + $length - 1)] );
+    my $blob = $b.subbuf($position, $length);
     $position += $length;
     return $blob;
 }
@@ -167,7 +167,7 @@ sub _unpack-bin( Blob $b, Int $position is rw, Int $length ) {
 
 
 sub _unpack-string( Blob $b, Int $position is rw, Int $length ) {
-    my $str = Blob.new( $b[$position .. ($position + $length - 1)] ).decode;
+    my $str = $b.subbuf($position, $length).decode;
     $position += $length;
     return $str;
 }
